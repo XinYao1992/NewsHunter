@@ -29,7 +29,28 @@ class MyElasticsearch():
             actions.append(self.format_action(key, value))
         helpers.bulk(self.es, actions, stats_only=True)
 
+    def q_category(self, field_name, value):
+        query_body={
+            "query":{
+                "match":{
+                    field_name: value
+                }
+            }
+        }
+        res = self.es.search(index="es_news", doc_type="news", body=query_body)
+        return res['hits']['hits']
 
+    def q_keywords(self, value):
+        query_body={
+            "query":{
+                "multi_match":{
+                    "query": value,
+                    "fields": ["section^1", "title^3", "abstract^2", "content^2", "byline^1", "source^1", "des_facet^1", "geo_facet^1"]
+                }
+            }
+        }
+        res = self.es.search(index="es_news", doc_type="news", body=query_body)
+        return res['hits']['hits']
 
 with open("health2.json") as data_file:
     data = json.load(data_file)
