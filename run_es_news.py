@@ -11,8 +11,10 @@ class MyElasticsearch():
         self.schema = schema
 
     def create_news_index(self):
-        if not self.es.indices.exists("es_news"):
-            news_index = self.es.indices.create(index = "es_news", body = self.schema)
+        if self.es.indices.exists("es_news"):
+            self.es.delete(index="es_news")
+        self.es.indices.create(index = "es_news", body = self.schema)
+
 
     def format_action(self, id, value):
         return {
@@ -64,12 +66,43 @@ class MyElasticsearch():
         res = self.es.search(index="es_news", doc_type="news", body=query_body)
         return res['hits']['hits']
 
-with open("health2.json") as data_file:
+    def q_nicesearch(self, keywords, ctg=["food", "art", "business", "health", "science", "sport", "travel", "world"], daterange="01/01/2010 - 05/10/2016"):
+        dateList = daterange.split("-")
+        query_body={
+            "query":{
+                "must":{
+                    "multi_match":{
+                        "section" : ctg,
+                    },
+                    "range":{
+                        "published_date": {"gte": dateList[0].strip(), "lte": dateList[1].strip(), "format": "MM/dd/yyyy"}
+                    },
+                    "multi_match":{
+                        "query": keywords,
+                        "fields": ["section^1", "title^3", "abstract^2", "content^2", "byline^1", "source^1", "des_facet^1", "geo_facet^1"]
+                    }
+                },
+                "filter":{
+                },
+                "should":[
+                    {
+                    }
+                ],
+                "minimum_should_match": 1,
+            }
+        }
+        res = self.es.search(index="es_news", doc_type="news", body=query_body)
+        return res['hits']['hits']
+
+with open("selected_corpus/all_news.json") as data_file:
     data = json.load(data_file)
 with open("es_mapping_file.json") as data_file2:
     schema = json.load(data_file2)
 myElasticsearch = MyElasticsearch(data, schema)
 myElasticsearch.create_news_index()
 myElasticsearch.bulk_insert()
-rs = myElasticsearch.es.search(index="es_news", body={"query":{"match_all":{}})
-print rs['hits']['total']
+#rs = myElasticsearch.es.search(index="es_news", body={"query":{"match_all":{}}})
+rs2 = myElasticsearch.q_nicesearch("taking statin medications", ["health"], "01/01/2014 - 02/28/2016")
+#print rs['hits']['total']
+print rs2[0]['_source']['title']
+#print rs3[0]['_source']['section']
