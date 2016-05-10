@@ -25,8 +25,20 @@ class MyElasticsearch():
     def bulk_insert(self):
         actions = []
         for key, value in self.data.iteritems():
-            #change value
-            actions.append(self.format_action(key, value))
+            #value contains "related_urls" field that we don't map.
+            value2 = {}
+            value2['section'] = value['section']
+            value2['title'] = value['title']
+            value2['abstract'] = value['abstract']
+            value2['url'] = value['url']
+            value2['content'] = value['content']
+            value2['byline'] = value['byline']
+            value2['thumbnail_standard'] = value['thumbnail_standard']
+            value2['source'] = value['source']
+            value2['published_date'] = value['published_date']
+            value2['des_facet'] = value['des_facet']
+            value2['geo_facet'] = value['geo_facet']
+            actions.append(self.format_action(key, value2))
         helpers.bulk(self.es, actions, stats_only=True)
 
     def q_category(self, field_name, value):
