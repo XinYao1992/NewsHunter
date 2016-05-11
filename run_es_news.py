@@ -12,7 +12,7 @@ class MyElasticsearch():
 
     def create_news_index(self):
         if self.es.indices.exists("es_news"):
-            self.es.delete(index="es_news")
+            self.es.indices.delete(index='es_news')
         self.es.indices.create(index = "es_news", body = self.schema)
 
 
@@ -70,39 +70,38 @@ class MyElasticsearch():
         dateList = daterange.split("-")
         query_body={
             "query":{
-                "must":{
-                    "multi_match":{
-                        "section" : ctg,
-                    },
-                    "range":{
-                        "published_date": {"gte": dateList[0].strip(), "lte": dateList[1].strip(), "format": "MM/dd/yyyy"}
-                    },
-                    "multi_match":{
-                        "query": keywords,
-                        "fields": ["section^1", "title^3", "abstract^2", "content^2", "byline^1", "source^1", "des_facet^1", "geo_facet^1"]
+                "bool":{
+                    "must":{
+                        "multi_match":{
+                            "section" : ctg,
+                        }},
+                    "must":{
+                        "range":{
+                            "published_date": {"gte": dateList[0].strip(), "lte": dateList[1].strip(), "format": "MM/dd/yyyy"}
+                        }},
+                    "must":{
+                        "multi_match":{
+                            "query": keywords,
+                            "fields": ["section^1", "title^3", "abstract^2", "content^2", "byline^1", "source^1", "des_facet^1", "geo_facet^1"]
+                        }
                     }
-                },
-                "filter":{
-                },
-                "should":[
-                    {
-                    }
-                ],
-                "minimum_should_match": 1,
+                }
             }
         }
         res = self.es.search(index="es_news", doc_type="news", body=query_body)
         return res['hits']['hits']
 
-with open("selected_corpus/all_news.json") as data_file:
+with open("all_news.json") as data_file:
     data = json.load(data_file)
 with open("es_mapping_file.json") as data_file2:
     schema = json.load(data_file2)
 myElasticsearch = MyElasticsearch(data, schema)
-myElasticsearch.create_news_index()
-myElasticsearch.bulk_insert()
+# myElasticsearch.create_news_index()
+# myElasticsearch.bulk_insert()
 #rs = myElasticsearch.es.search(index="es_news", body={"query":{"match_all":{}}})
-rs2 = myElasticsearch.q_nicesearch("taking statin medications", ["health"], "01/01/2014 - 02/28/2016")
+a="statins may help"
+s="01/01/2014 - 02/28/2016"
+rs2 = myElasticsearch.q_nicesearch(keywords=a,daterange=s)
 #print rs['hits']['total']
 print rs2[0]['_source']['title']
 #print rs3[0]['_source']['section']
